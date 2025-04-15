@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}inventory-forecast{% endblock %}</title>
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+
+    <!-- Chart.js (For Reports & Stock Trends) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">inventory-forecast</a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav ms-auto">
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboard.view') }}">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('inventory.view') }}">Inventory</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('sales.view') }}">Sales</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('restocking.view') }}">Restocking</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('reports.view') }}">Reports</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('statistics.view') }}">Statistics</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="notificationsDropdown" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            Notifications
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationsDropdown">
+                            {% for notification in g.recent_notifications %}
+                            <li>
+                                <a class="dropdown-item" href="#">
+                                    <strong>{{ notification.user.role.name if notification.user else "System" }} ({{
+                                        notification.user.username if notification.user else "" }})</strong>
+                                    {{ notification.description }}
+                                    <br>
+                                    <small class="text-muted">{{ notification.time_since }}</small>
+                                </a>
+                            </li>
+                            {% else %}
+                            <li><span class="dropdown-item text-muted">No notifications</span></li>
+                            {% endfor %}
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="settingsDropdown" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            Settings
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="settingsDropdown">
+                            <li><a class="dropdown-item" href="{{ url_for('category.view') }}">Categories</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('unit_type.view') }}">Unit Types</a></li>
+                            {% if current_user.role_id in [1, 2] %}
+                            <li><a class="dropdown-item" href="{{ url_for('accounts.view') }}">Accounts</a></li>
+                            {% endif %}
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            {{ current_user.username }}
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="userDropdown">
+                            <li><a class="dropdown-item" href="{{ url_for('profile.view') }}">Profile</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Logout</a></li>
+                        </ul>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- TOAST MESSAGES -->
+    <div aria-live="polite" aria-atomic="true" class="position-relative" style="z-index: 9999;">
+        <div class="toast-container position-fixed top-0 end-0 p-3">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="toast align-items-center text-white bg-{{ 'success' if category == 'success' else 'danger' }} border-0"
+                role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        {{ message }}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                        aria-label="Close"></button>
+                </div>
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+        </div>
+    </div>
+
+    <div class="container mt-4">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+
+    <!-- DataTables Initialization -->
+    <script>
+        $(document).ready(function () {
+            $('.datatable:not(#historyOffcanvas .datatable)').DataTable({
+                "paging": true,
+                "searching": true,
+                "ordering": true,
+                "info": true,
+                "lengthChange": true
+            });
+
+            $('#historyOffcanvas .datatable').DataTable({
+                "paging": true,
+                "searching": true,
+                "ordering": true,
+                "order": [[0, 'desc']],
+                "info": true,
+                "lengthChange": false,
+                "dom": '<"top"f>rt<"bottom"lp><"clear">', // Ensure search input spans the whole offcanvas
+                "initComplete": function (settings, json) {
+                    $('#historyOffcanvas .dataTables_filter').css('width', '100%');
+                    $('#historyOffcanvas .dataTables_filter input').css('width', '100%');
+                    $('#historyOffcanvas .dataTables_filter').css('text-align', 'left'); // Align search input to the left
+                    $('#historyOffcanvas .dataTables_filter label').css('display', 'flex');
+                    $('#historyOffcanvas .dataTables_filter label').css('align-items', 'center'); // Align search text with search input
+                },
+                "columnDefs": [
+                    { "orderable": false, "targets": 0 } // Remove sort icon from the header
+                ]
+            });
+            // Remove sorting icon using CSS
+            $('#historyOffcanvas .datatable thead th').css('pointer-events', 'none'); // Disable clicking
+            $('#historyOffcanvas .datatable thead th').removeClass('sorting sorting_asc sorting_desc'); // Remove sorting styles
+        });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const toastElements = document.querySelectorAll('.toast');
+            toastElements.forEach(toastEl => {
+                const toast = new bootstrap.Toast(toastEl);
+                toast.show();
+            });
+        });
+    </script>
+
+</body>
+
+</html>

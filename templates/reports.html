@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mt-4">
+        <h2 class="mt-4">Reports</h2>
+        <!-- Check History Button -->
+        <button class="btn btn-info mb-3" data-bs-toggle="offcanvas" data-bs-target="#historyOffcanvas">
+            <i class="bi bi-clock-history"></i> Check History
+        </button>
+    </div>
+
+    <!-- Restock & Forecast Tables Side-by-Side -->
+    <div class="row">
+        <!-- Restock Suggestions -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-warning text-dark">Restock Suggestions</div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped datatable">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Suggested Restock</th>
+                                    <th>Priority Level</th>
+                                    <th>Current Stock</th>
+                                    <th>Forecasted Demand</th>
+                                    <th>Time Period</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for suggestion in restock_suggestions %}
+                                <tr>
+                                    <td>{{ suggestion.name }}</td>
+                                    <td>{{ suggestion.suggested_amount }}</td>
+                                    <td>{{ suggestion.priority_level }}</td>
+                                    <td>{{ suggestion.current_stock }}</td>
+                                    <td>{{ suggestion.forecasted_demand }}</td>
+                                    <td>{{ suggestion.time_period }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Forecast Accuracy -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-primary text-white">Forecast Accuracy</div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped datatable">
+                            <thead>
+                                <tr>
+                                    <th>Product Name</th>
+                                    <th>Forecasted Demand</th>
+                                    <th>Actual Demand</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in forecast_accuracy %}
+                                <tr>
+                                    <td>{{ record.name }}</td>
+                                    <td>{{ record.forecasted_demand }}</td>
+                                    <td>{{ record.actual_demand or 0 }}</td>
+                                    <td>{{ record.date.strftime("%Y-%m-%d") }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock Trends (Top Full Width Carousel) -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-success text-white">Stock Trends</div>
+        <div class="card-body">
+            {% if stock_trends %}
+            <div id="stockTrendsCarousel" class="carousel slide" data-bs-ride="carousel">
+                <div class="carousel-inner">
+                    {% for product_name, data in stock_trends.items() %}
+                    <div class="carousel-item {% if loop.first %}active{% endif %}">
+                        <canvas id="chart-{{ loop.index }}" style="width: 1000px; height: 600px;"></canvas>
+                    </div>
+                    {% endfor %}
+                </div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#stockTrendsCarousel"
+                    data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#stockTrendsCarousel"
+                    data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+            </div>
+            {% else %}
+            <p class="text-muted text-center m-0">No stock trend data available.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- History Offcanvas -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="historyOffcanvas" aria-labelledby="historyOffcanvasLabel">
+    <div class="offcanvas-header">
+        <h5 id="historyOffcanvasLabel">History</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <div class="table-responsive">
+            <table class="table table-striped datatable">
+                <thead>
+                    <tr>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for history in history_records %}
+                    <tr>
+                        <td>{{ history.user_role }} ({{ history.username }}) {{ history.description }} on {{
+                            history.timestamp.strftime("%b %d, %Y, at %I:%M %p") }}.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js & Custom Script -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    var stockTrends = JSON.parse('{{ stock_trends | tojson | safe }}');
+
+    Object.entries(stockTrends).forEach(([productName, data], index) => {
+        let filteredDates = [];
+        let filteredLevels = [];
+        let currentDate = new Date();
+        currentDate.setHours(0, 0, 0, 0);
+        let lastDisplayedDate = null;
+
+        data.dates.forEach((date, i) => {
+            let entryDate = new Date(date);
+            entryDate.setHours(0, 0, 0, 0);
+
+            if ((currentDate - entryDate) / (1000 * 60 * 60 * 24) <= 30) {
+                let formattedDate = (entryDate.getMonth() + 1).toString().padStart(2, '0') + '-' + entryDate.getDate().toString().padStart(2, '0');
+                if (formattedDate !== lastDisplayedDate) {
+                    filteredDates.push(formattedDate);
+                    lastDisplayedDate = formattedDate;
+                } else {
+                    filteredDates.push('');
+                }
+                filteredLevels.push(data.levels[i]);
+            }
+        });
+
+        var ctx = document.getElementById('chart-' + (index + 1)).getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: filteredDates,
+                datasets: [{
+                    label: productName,
+                    data: filteredLevels,
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { title: { display: true, text: 'Date (Last 30 Days)' } },
+                    y: { beginAtZero: true, title: { display: true, text: 'Stock Level' } }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

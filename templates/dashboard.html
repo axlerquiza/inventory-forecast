@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="px-4 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Dashboard</h2>
+    </div>
+
+    <div class="row">
+        <!-- Summary -->
+        <div class="col-md-3">
+            <div class="card shadow-sm">
+                <div class="card-header text-center">
+                    <h5 class="mb-0">Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <h6 class="mb-1">Total Products</h6>
+                                <h4>{{ total_products }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h6 class="mb-1">Healthy Stock</h6>
+                                <h4>{{ healthy_stock }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="card bg-warning text-dark">
+                            <div class="card-body text-center">
+                                <h6 class="mb-1">Near Min. Stock</h6>
+                                <h4>{{ near_min_stock }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="card bg-danger text-white">
+                            <div class="card-body text-center">
+                                <h6 class="mb-1">Low Stock</h6>
+                                <h4>{{ low_stock }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="card bg-dark text-white">
+                            <div class="card-body text-center">
+                                <h6 class="mb-1">Out of Stock</h6>
+                                <h4>{{ out_of_stock }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inventory Table -->
+        <div class="col-md-9">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped datatable w-100">
+                            <thead>
+                                <tr>
+                                    <th>Product Name</th>
+                                    <th>Stock Level</th>
+                                    <th>Unit Type</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in inventory %}
+                                <tr>
+                                    <td class="d-flex align-items-center">
+                                        {% if item.image %}
+                                        <img src="{{ url_for('static', filename='inventory_uploads/' + item.image) }}"
+                                            alt="Item Image" width="50" height="50" class="me-2 rounded"
+                                            style="object-fit: cover;">
+                                        {% else %}
+                                        <img src="{{ url_for('static', filename='inventory_uploads/default.png') }}"
+                                            alt="Default Image" width="50" height="50" class="me-2 rounded"
+                                            style="object-fit: cover;">
+                                        {% endif %}
+                                        <span>{{ item.name }}</span>
+                                    </td>
+                                    <td>{{ item.stock_level }}</td>
+                                    <td>{{ item.unit_type.name }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-danger" data-bs-toggle="modal"
+                                            data-bs-target="#removeStockModal{{ item.id }}">
+                                            <i class="bi bi-dash"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-success" data-bs-toggle="modal"
+                                            data-bs-target="#addStockModal{{ item.id }}">
+                                            <i class="bi bi-plus"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <!-- Remove Stock Modal -->
+                                <div class="modal fade" id="removeStockModal{{ item.id }}" tabindex="-1"
+                                    aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Remove Stock</h5>
+                                                <button type="button" class="btn-close"
+                                                    data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <form method="POST"
+                                                    action="{{ url_for('dashboard.remove_stock', item_id=item.id) }}">
+                                                    <label class="form-label">Enter quantity to remove:</label>
+                                                    <input type="number" class="form-control" name="stock_value"
+                                                        required min="1" max="{{ item.stock_level }}"
+                                                        oninput="this.value = Math.min(this.value, '{{ item.stock_level | tojson }}');">
+                                                    <small class="text-muted">Maximum allowed: {{ item.stock_level
+                                                        }}</small>
+                                                    <div class="modal-footer">
+                                                        <button type="submit" class="btn btn-danger">Confirm</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Add Stock Modal -->
+                                <div class="modal fade" id="addStockModal{{ item.id }}" tabindex="-1"
+                                    aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Add Stock</h5>
+                                                <button type="button" class="btn-close"
+                                                    data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <form method="POST"
+                                                    action="{{ url_for('dashboard.add_stock', item_id=item.id) }}">
+                                                    <label class="form-label">Enter quantity to add:</label>
+                                                    <input type="number" class="form-control" name="stock_value"
+                                                        required min="1"
+                                                        max="{{ item.max_threshold|int - item.stock_level|int }}"
+                                                        oninput="this.value = Math.min(this.value, '{{ (item.max_threshold|int - item.stock_level|int) | tojson }}');">
+                                                    <small class="text-muted">Maximum allowed: {{ item.max_threshold -
+                                                        item.stock_level }}</small>
+                                                    <div class="modal-footer">
+                                                        <button type="submit" class="btn btn-success">Confirm</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

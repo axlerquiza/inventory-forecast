@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Statistics</h2>
+
+    <!-- Inventory Health & Summary Cards (Side by Side) -->
+    <div class="row d-flex align-items-stretch">
+        <!-- Inventory Health Chart (Left) -->
+        <div class="col-md-8">
+            <div class="card mb-4 h-100">
+                <div class="card-header bg-success text-white">Inventory Health</div>
+                <div class="card-body">
+                    <canvas id="inventoryHealthChart" width="1000" height="600"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Cards (Right) -->
+        <div class="col-md-4">
+            <div class="card mb-4 h-100">
+                <div class="card-header bg-secondary text-white">Summary</div>
+                <div class="card-body d-flex flex-column justify-content-around">
+                    <div class="row flex-column">
+                        <div class="col-md-12 mb-4">
+                            <div class="card text-white bg-primary">
+                                <div class="card-body">
+                                    <h5 class="card-title">Total Revenue</h5>
+                                    <p class="card-text">₱{{ '%.2f' | format(total_revenue) }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-12 mb-4">
+                            <div class="card text-white bg-success">
+                                <div class="card-body">
+                                    <h5 class="card-title">Net Profit</h5>
+                                    <p class="card-text">₱{{ '%.2f' | format(net_profit) }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-12 mb-4">
+                            <div class="card text-dark bg-warning">
+                                <div class="card-body">
+                                    <h5 class="card-title">Total Purchases</h5>
+                                    <p class="card-text">₱{{ '%.2f' | format(total_purchases) }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-12 mb-4">
+                            <div class="card text-white bg-danger">
+                                <div class="card-body">
+                                    <h5 class="card-title">Units Sold</h5>
+                                    <p class="card-text">{{ total_units_sold }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <br>
+
+    <!-- Top Selling Products & Low Stocks Tables (Side by Side) -->
+    <div class="row d-flex align-items-stretch">
+        <!-- Top Selling Products Table (Left) -->
+        <div class="col-md-6">
+            <div class="card mb-4 h-100">
+                <div class="card-header bg-primary text-white">Top Selling Products</div>
+                <div class="card-body">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Product Name</th>
+                                <th>Units Sold</th>
+                                <th>Revenue Generated</th>
+                                <th>Profit Margin</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in top_selling_products %}
+                            <tr>
+                                <td>{{ product.name }}</td>
+                                <td>{{ product.units_sold }}</td>
+                                <td>₱{{ '%.2f' | format(product.revenue_generated) }}</td>
+                                <td>{{ '%.2f' | format(product.profit_margin) }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Low Stocks Table (Right) -->
+        <div class="col-md-6">
+            <div class="card mb-4 h-100">
+                <div class="card-header bg-danger text-white">Low Stocks</div>
+                <div class="card-body">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Product Name</th>
+                                <th>Current Stock</th>
+                                <th>Stock Threshold</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in low_stock_products %}
+                            <tr>
+                                <td>{{ product.name }}</td>
+                                <td>{{ product.current_stock }}</td>
+                                <td>{{ product.stock_threshold }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <br>
+
+    <!-- Sales vs. Purchase Trend Graph -->
+    <div class="card mb-4">
+        <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+            <span>Sales vs. Purchases</span>
+            <div class="form-group mb-0">
+                <select class="form-control" id="trendDropdown">
+                    <option value="monthly">Monthly</option>
+                    <option value="yearly">Yearly</option>
+                </select>
+            </div>
+        </div>
+        <div class="card-body">
+            <canvas id="salesVsPurchaseChart" width="1000" height="500"></canvas>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Use the tojson filter to safely pass the Python variables as JSON data
+    var healthyStock = JSON.parse('{{ healthy_stock | tojson | safe }}');
+    var nearMinStock = JSON.parse('{{ near_min_stock | tojson | safe }}');
+    var lowStock = JSON.parse('{{ low_stock | tojson | safe }}');
+    var outOfStock = JSON.parse('{{ out_of_stock | tojson | safe }}');
+
+    // Calculate the maximum stock level
+    const maxStockLevel = Math.max(healthyStock, nearMinStock, lowStock, outOfStock);
+
+    // Inventory Health Chart
+    const inventoryCtx = document.getElementById('inventoryHealthChart').getContext('2d');
+    new Chart(inventoryCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Healthy Stock', 'Near Min Stock', 'Low Stock', 'Out of Stock'],
+            datasets: [{
+                label: 'Inventory Status',
+                data: [healthyStock, nearMinStock, lowStock, outOfStock],
+                backgroundColor: ['#28a745', '#ffc107', '#fd7e14', '#dc3545']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    suggestedMax: maxStockLevel <= 10 ? 10 : undefined, // Fixed range for <=10, dynamic otherwise
+                    ticks: {
+                        stepSize: maxStockLevel <= 10 ? 1 : undefined // Step size of 1 for <=10
+                    }
+                }
+            }
+        }
+    });
+
+    // Sales vs. Purchase Trend Chart with Dropdown
+    const salesCtx = document.getElementById('salesVsPurchaseChart').getContext('2d');
+    const trendDropdown = document.getElementById('trendDropdown');
+
+    function fetchAndRenderTrends(period) {
+        fetch(`{{ url_for('statistics.sales_purchase_trends') }}?period=${period}`)
+            .then(response => response.json())
+            .then(data => {
+                const dates = data.sales.map(item => item.date);  // Extract dates from sales data
+                const sales = data.sales.map(item => item.revenue);  // Extract sales revenue
+                const purchases = data.purchases.map(item => item.cost);  // Extract purchase costs
+
+                new Chart(salesCtx, {
+                    type: 'line',
+                    data: {
+                        labels: dates,  // Use dates as x-axis labels
+                        datasets: [
+                            {
+                                label: 'Sales Revenue',
+                                data: sales,
+                                borderColor: '#007bff',
+                                fill: false
+                            },
+                            {
+                                label: 'Purchase Cost',
+                                data: purchases,
+                                borderColor: '#ffc107',
+                                fill: false
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Date'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Amount (₱)'
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+    }
+
+    // Initial fetch and render for monthly trends
+    fetchAndRenderTrends('monthly');
+
+    // Event listener for dropdown change
+    trendDropdown.addEventListener('change', function () {
+        const selectedPeriod = this.value;
+        fetchAndRenderTrends(selectedPeriod);
+    });
+</script>
+{% endblock %}

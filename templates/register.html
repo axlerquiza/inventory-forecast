@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-4">
+        <h2 class="text-center">Register</h2>
+        <form method="POST">
+            <div class="mb-3">
+                <label class="form-label">Username</label>
+                <input type="text" name="username" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Password</label>
+                <input type="password" name="password" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Role</label>
+                <select name="role" class="form-control">
+                    <option value="3">Employee</option>
+                    <option value="2">Manager</option>
+                    <option value="1">Admin</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-success w-100">Register</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

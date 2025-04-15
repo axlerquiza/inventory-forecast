@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-center align-items-center" style="min-height: 75vh;">
+    <div class="card shadow" style="width: 100%; max-width: 400px;">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Login</h5>
+        </div>
+        <form method="POST">
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Username</label>
+                    <input type="text" name="username" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Password</label>
+                    <div class="input-group">
+                        <input type="password" name="password" class="form-control" id="passwordInput" required>
+                        <button type="button" class="btn btn-outline-secondary toggle-password"
+                            data-target="passwordInput">
+                            <i class="bi bi-eye-slash"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Flash messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <div class="flash-messages text-center">
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% endwith %}
+
+                <div class="text-end mt-2">
+                    <a href="{{ url_for('forgotpassword.view') }}" class="text-decoration-none"
+                        style="font-size: 0.875rem;">Forgot Password?</a>
+                </div>
+            </div>
+            <div class="card-footer text-center">
+                <button type="submit" class="btn btn-primary w-100">Login</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Add event listeners for toggle password visibility buttons
+    document.querySelectorAll('.toggle-password').forEach(button => {
+        button.addEventListener('click', function () {
+            const targetInput = document.getElementById(this.dataset.target);
+            const icon = this.querySelector('i');
+            if (targetInput.type === 'password') {
+                targetInput.type = 'text';
+                icon.classList.remove('bi-eye-slash');
+                icon.classList.add('bi-eye');
+            } else {
+                targetInput.type = 'password';
+                icon.classList.remove('bi-eye');
+                icon.classList.add('bi-eye-slash');
+            }
+        });
+    });
+</script>
+{% endblock %}

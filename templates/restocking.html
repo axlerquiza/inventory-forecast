@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mt-4">Restocking</h2>
+    </div>
+
+    <!-- Restocking Table -->
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped datatable">
+                    <thead>
+                        <tr>
+                            <th>Transaction ID</th>
+                            <th>Product</th>
+                            <th>Quantity</th>
+                            <th>Total Cost</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for restock in restocks %}
+                        <tr>
+                            <td>{{ restock.id }}</td>
+                            <td>{{ restock.inventory.name if restock.inventory else "Deleted Item" }}</td>
+                            <td>{{ restock.quantity_added }}</td>
+                            <td>₱{{ '%.2f' | format(restock.total_cost) }}</td>
+                            <td>{{ restock.restocked_at.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+                            <td>
+                                <!-- Delete Button -->
+                                <button class="btn btn-sm btn-danger" data-bs-toggle="modal"
+                                    data-bs-target="#deleteModal{{ restock.id }}">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- Delete Confirmation Modal -->
+                        <div class="modal fade" id="deleteModal{{ restock.id }}" tabindex="-1"
+                            aria-labelledby="deleteModalLabel{{ restock.id }}" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="deleteModalLabel{{ restock.id }}">Confirm Deletion
+                                        </h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                            aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        Are you sure you want to delete this restocking record for <strong>{{
+                                            restock.inventory.name }}</strong>?
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary"
+                                            data-bs-dismiss="modal">Cancel</button>
+                                        <form method="POST"
+                                            action="{{ url_for('restocking.delete_restock', restock_id=restock.id) }}">
+                                            <button type="submit" class="btn btn-danger">Delete</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

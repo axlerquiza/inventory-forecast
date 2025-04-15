@@ -1,0 +1,15 @@
+from flask import Blueprint
+
+auth_bp = Blueprint('auth', __name__)
+forgotpassword_bp = Blueprint('forgotpassword', __name__)
+dashboard_bp = Blueprint('dashboard', __name__)
+inventory_bp = Blueprint('inventory', __name__)
+sales_bp = Blueprint('sales', __name__)
+restocking_bp = Blueprint('restocking', __name__)
+reports_bp = Blueprint('reports', __name__)
+statistics_bp = Blueprint('statistics', __name__)
+notifications_bp = Blueprint('notifications', __name__)
+accounts_bp = Blueprint('accounts', __name__)
+profile_bp = Blueprint('profile', __name__)
+category_bp = Blueprint('category', __name__)
+unit_type_bp = Blueprint('unit_type', __name__)

@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mt-4">Profile</h2>
+
+    <form method="POST" enctype="multipart/form-data">
+        <div class="row">
+            <!-- Profile Picture Section -->
+            <div class="col-md-4 text-center">
+                <div class="mb-3 position-relative">
+                    <label for="profilePictureInput" class="d-inline-block">
+                        <img id="profilePreview"
+                            src="{{ url_for('static', filename='profile_pics/' + current_user.profile_picture) if current_user.profile_picture else url_for('static', filename='profile_pics/default.jpg') }}"
+                            class="rounded-circle img-fluid" style="width: 150px; height: 150px; object-fit: cover;"
+                            alt="Profile Picture">
+                    </label>
+                    <div class="change-photo-text text-muted small mt-2" style="cursor: pointer;">Change Photo</div>
+                    <input type="file" id="profilePictureInput" name="profile_picture" accept="image/*" class="d-none">
+                </div>
+            </div>
+
+            <!-- Account Details Section -->
+            <div class="col-md-8">
+                <h5>Account Details</h5>
+                <div class="mb-3">
+                    <label class="form-label">Username</label>
+                    <input type="text" class="form-control w-25" value="{{ current_user.username }}" readonly>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Role</label>
+                    <input type="text" class="form-control w-25" value="{{ current_user.role.name }}" readonly>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <!-- Employee Details Section -->
+            <div class="col-md-4">
+                <h5>Employee Details</h5>
+                <div class="mb-3">
+                    <label class="form-label">First Name</label>
+                    <input type="text" name="first_name" class="form-control w-50"
+                        value="{{ current_user.first_name or '' }}" placeholder="Add first name" id="firstNameInput">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Last Name</label>
+                    <input type="text" name="last_name" class="form-control w-50"
+                        value="{{ current_user.last_name or '' }}" placeholder="Add last name" id="lastNameInput">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="email" class="form-control w-50" value="{{ current_user.email or '' }}"
+                        placeholder="Add email address" id="emailInput">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Phone Number</label>
+                    <input type="text" name="phone_number" class="form-control w-50"
+                        value="{{ current_user.phone_number or '' }}" placeholder="Add phone number"
+                        id="phoneNumberInput" minlength="8" maxlength="20" pattern="^\+?[0-9\s\-\(\)]{8,20}$"
+                        title="Phone number must be 8-20 characters long and can include digits, spaces, +, -, and parentheses.">
+                </div>
+            </div>
+
+            <!-- Accounts Security Section -->
+            <div class="col-md-4">
+                <h5>Accounts Security</h5>
+                <div class="mb-3">
+                    <button type="button" class="btn btn-warning" data-bs-toggle="modal"
+                        data-bs-target="#changePasswordModal">
+                        Change Password
+                    </button>
+                </div>
+            </div>
+
+            <div class="col-12">
+                <!-- Save and Cancel Buttons -->
+                <button type="submit" class="btn btn-primary" id="saveButton" disabled>Save</button>
+                <button type="button" class="btn btn-secondary d-none" id="cancelButton">Cancel</button>
+            </div>
+    </form>
+</div>
+
+<!-- Change Password Modal -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('profile.change_password') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="changePasswordModalLabel">Change Password</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Current Password</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" name="current_password"
+                                id="currentPasswordInput" required>
+                            <button type="button" class="btn btn-outline-secondary toggle-password"
+                                data-target="currentPasswordInput">
+                                <i class="bi bi-eye-slash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">New Password</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" name="new_password" id="newPasswordInput"
+                                required minlength="3">
+                            <button type="button" class="btn btn-outline-secondary toggle-password"
+                                data-target="newPasswordInput">
+                                <i class="bi bi-eye-slash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Confirm New Password</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" name="confirm_new_password"
+                                id="confirmPasswordInput" required minlength="3">
+                            <button type="button" class="btn btn-outline-secondary toggle-password"
+                                data-target="confirmPasswordInput">
+                                <i class="bi bi-eye-slash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Confirm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Get references to the input fields and the buttons
+    const firstNameInput = document.getElementById('firstNameInput');
+    const lastNameInput = document.getElementById('lastNameInput');
+    const emailInput = document.getElementById('emailInput');
+    const phoneNumberInput = document.getElementById('phoneNumberInput');
+    const profilePictureInput = document.getElementById('profilePictureInput');
+    const profilePreview = document.getElementById('profilePreview');
+    const saveButton = document.getElementById('saveButton');
+    const cancelButton = document.getElementById('cancelButton');
+
+    // Store the initial values of the input fields and profile picture
+    const initialValues = {
+        firstName: firstNameInput.value,
+        lastName: lastNameInput.value,
+        email: emailInput.value,
+        phoneNumber: phoneNumberInput.value,
+        profilePicture: profilePreview.src
+    };
+
+    // Function to check if any input field or profile picture has changed
+    function checkForChanges() {
+        if (
+            firstNameInput.value !== initialValues.firstName ||
+            lastNameInput.value !== initialValues.lastName ||
+            emailInput.value !== initialValues.email ||
+            phoneNumberInput.value !== initialValues.phoneNumber ||
+            profilePreview.src !== initialValues.profilePicture
+        ) {
+            saveButton.disabled = false; // Enable the Save button
+            cancelButton.classList.remove('d-none'); // Show the Cancel button
+        } else {
+            saveButton.disabled = true; // Disable the Save button
+            cancelButton.classList.add('d-none'); // Hide the Cancel button
+        }
+    }
+
+    // Function to revert changes and reset input fields and profile picture
+    function revertChanges() {
+        firstNameInput.value = initialValues.firstName;
+        lastNameInput.value = initialValues.lastName;
+        emailInput.value = initialValues.email;
+        phoneNumberInput.value = initialValues.phoneNumber;
+        profilePreview.src = initialValues.profilePicture;
+
+        saveButton.disabled = true; // Disable the Save button
+        cancelButton.classList.add('d-none'); // Hide the Cancel button
+    }
+
+    // Add event listeners to detect changes in the input fields
+    firstNameInput.addEventListener('input', checkForChanges);
+    lastNameInput.addEventListener('input', checkForChanges);
+    emailInput.addEventListener('input', checkForChanges);
+    phoneNumberInput.addEventListener('input', checkForChanges);
+
+    // Add event listener to the Cancel button
+    cancelButton.addEventListener('click', revertChanges);
+
+    // Add event listener for profile picture input
+    profilePictureInput.addEventListener('change', function (event) {
+        if (event.target.files.length > 0) {
+            const file = event.target.files[0];
+
+            // Check file size (5MB limit)
+            if (file.size > 5 * 1024 * 1024) {
+                alert("File size must be below 5MB.");
+                profilePictureInput.value = ""; // Clear the input
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                profilePreview.src = e.target.result; // Update the preview
+                checkForChanges(); // Trigger change detection
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Trigger file input when clicking on the "Change Photo" text
+    document.querySelector('.change-photo-text').addEventListener('click', function () {
+        profilePictureInput.click();
+    });
+
+    // Add event listeners for toggle password visibility buttons
+    document.querySelectorAll('.toggle-password').forEach(button => {
+        button.addEventListener('click', function () {
+            const targetInput = document.getElementById(this.dataset.target);
+            const icon = this.querySelector('i');
+            if (targetInput.type === 'password') {
+                targetInput.type = 'text';
+                icon.classList.remove('bi-eye-slash');
+                icon.classList.add('bi-eye');
+            } else {
+                targetInput.type = 'password';
+                icon.classList.remove('bi-eye');
+                icon.classList.add('bi-eye-slash');
+            }
+        });
+    });
+</script>
+
+{% endblock %}
